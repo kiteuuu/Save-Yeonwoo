@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Invaders</title>
+    <title>연우를 구해라!</title>
     <style>
         body {
             margin: 0;
@@ -17,7 +17,7 @@
         canvas {
             border: 2px solid #000000;
             border-radius: 10px;
-            background-color: transparent; /* 캔버스를 투명하게 설정 */
+            background-color: transparent;
         }
     </style>
 </head>
@@ -30,6 +30,7 @@
         canvas.width = 1024;
         canvas.height = 768;
 
+        // 이미지 및 오디오 파일 로드
         const background = new Image();
         background.src = 'img/back.svg';
 
@@ -54,11 +55,14 @@
         const logoSVG = new Image();
         logoSVG.src = 'img/logo.svg';
 
-        const loadingSound = new Audio('sounds/window.mp3'); // 로딩 효과음 파일 경로
-        const invaderDeathSound = new Audio('sounds/window2.mp3'); // 인베이더 죽을 때 효과음 파일 경로
-        const bulletSound = new Audio('sounds/shoot.mp3'); // 총알 발사 효과음 파일 경로
-        bulletSound.volume = 0.2; // 총알 발사 효과음 소리 낮추기
+        const loadingSound = new Audio('sounds/window.mp3'); 
+        const invaderDeathSound = new Audio('sounds/window2.mp3'); 
+        const bulletSound = new Audio('sounds/shoot.mp3'); 
+        bulletSound.volume = 0.2; 
 
+
+
+        // 게임 변수 설정
         const playerWidth = 50;
         const playerHeight = 130;
         const playerSpeed = 7;
@@ -84,12 +88,15 @@
         let invaderDirection = 1;
         let gameOver = false;
         let gameClear = false;
-        let gameState = 'loading'; // 'loading', 'start', 'rules', 'playing', 'gameover', 'gameclear'
+        let gameState = 'loading'; 
 
+
+        // 이벤트 핸들러 등록
         document.addEventListener("keydown", keyDownHandler, false);
         document.addEventListener("keyup", keyUpHandler, false);
         canvas.addEventListener("click", handleCanvasClick, false);
 
+        // 키 이벤트 핸들러
         function keyDownHandler(e) {
             if (e.key === "Right" || e.key === "ArrowRight") {
                 rightPressed = true;
@@ -110,9 +117,10 @@
             }
         }
 
+        // 클릭 이벤트 핸들러
         function handleCanvasClick() {
             if (gameState === 'loading') {
-                loadingSound.play(); // 로딩 화면에서 클릭할 때 로딩 사운드를 재생
+                loadingSound.play(); // 음원은 자동 재생이 안되므로 클릭 시 재생..이 아쉽습니다.
             }
             if (gameState === 'start') {
                 gameState = 'rules';
@@ -133,6 +141,8 @@
             }
         }
 
+
+        // 그리기 함수 부분은 잘 모르겠어서 챗 gpt에게 물어봤습니다.
         function drawBackground() {
             ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
         }
@@ -173,6 +183,8 @@
             });
         }
 
+
+        // 충돌 감지 함수도 어려워서 챗 gpt에게 물어봤습니다.
         function collisionDetection() {
             bullets.forEach((bullet, bIndex) => {
                 invaders.forEach((invader, iIndex) => {
@@ -180,7 +192,7 @@
                         bullet.x + bulletWidth > invader.x &&
                         bullet.y < invader.y + invaderHeight &&
                         bullet.y + bulletHeight > invader.y) {
-                        invaderDeathSound.play(); // 인베이더가 죽을 때 효과음 재생
+                        invaderDeathSound.play(); 
                         invaders.splice(iIndex, 1);
                         bullets.splice(bIndex, 1);
 
@@ -205,6 +217,9 @@
             });
         }
 
+
+
+        // 게임 오버 & 게임 클리어 화면
         function showGameOver() {
             const gameOverWidth = 500;
             const gameOverHeight = 330;
@@ -233,6 +248,8 @@
             }
         }
 
+
+        // 오프닝 & 로딩 화면
         function drawLoading() {
             ctx.fillStyle = "#000";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -254,6 +271,8 @@
             ctx.fillRect(loadingBarX, loadingBarY, loadingBarWidth * progress, loadingBarHeight);
         }
 
+
+        // 게임 업데이트 함수 부분도 잘 모르겠어서 챗 gpt에게 물어봤습니다.
         function update() {
             if (gameOver) {
                 showGameOver();
@@ -284,7 +303,7 @@
 
             if (spacePressed) {
                 bullets.push({ x: playerX + playerWidth / 2 - bulletWidth / 2, y: playerY });
-                bulletSound.play(); // 총알이 발사될 때 효과음 재생
+                bulletSound.play(); 
                 spacePressed = false;
             }
 
@@ -299,6 +318,8 @@
             requestAnimationFrame(update);
         }
 
+
+        // 인베이더 초기화 부분도.. 잘 모르겠어서 챗 gpt에게 물어봤습니다.
         function initInvaders() {
             const rows = 3;
             const cols = 10;
@@ -315,6 +336,9 @@
             }
         }
 
+
+
+        // 이미지 로드가 완료되면 게임 시작
         function allImagesLoaded() {
             return new Promise((resolve) => {
                 let loadedCount = 0;
@@ -331,7 +355,6 @@
             });
         }
 
-        // 즉시 로딩 화면을 그리기 시작
         requestAnimationFrame(drawLoading);
 
         allImagesLoaded().then(() => {
@@ -343,5 +366,9 @@
             requestAnimationFrame(update);
         });
     </script>
+
+    <!-- 처음에 기획 했던 것과 많이 달라졌는데,
+    수정한 게임도 아직 어려운 부분이 많아서 챗 gpt에게 도움을 많이 받은 것 같습니다..ㅠㅠ
+    아직 더 공부해야 할 것 같습니다. . .-->
 </body>
 </html>
