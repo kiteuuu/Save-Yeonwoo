@@ -52,6 +52,9 @@
         const gameRulesSVG = new Image();
         gameRulesSVG.src = 'img/gamerules.svg';
 
+        const storySVG = new Image();
+        storySVG.src = 'img/story.svg';
+
         const logoSVG = new Image();
         logoSVG.src = 'img/logo.svg';
 
@@ -59,8 +62,6 @@
         const invaderDeathSound = new Audio('sounds/window2.mp3'); 
         const bulletSound = new Audio('sounds/shoot.mp3'); 
         bulletSound.volume = 0.2; 
-
-
 
         // 게임 변수 설정
         const playerWidth = 50;
@@ -89,7 +90,6 @@
         let gameOver = false;
         let gameClear = false;
         let gameState = 'loading'; 
-
 
         // 이벤트 핸들러 등록
         document.addEventListener("keydown", keyDownHandler, false);
@@ -120,9 +120,12 @@
         // 클릭 이벤트 핸들러
         function handleCanvasClick() {
             if (gameState === 'loading') {
-                loadingSound.play(); // 음원은 자동 재생이 안되므로 클릭 시 재생..이 아쉽습니다.
+                loadingSound.play(); // 음원은 자동 재생이 안되므로 클릭 시 재생
             }
             if (gameState === 'start') {
+                gameState = 'story';
+                drawOpening();
+            } else if (gameState === 'story') {
                 gameState = 'rules';
                 drawOpening();
             } else if (gameState === 'rules') {
@@ -141,8 +144,7 @@
             }
         }
 
-
-        // 그리기 함수 부분은 잘 모르겠어서 챗 gpt에게 물어봤습니다.
+        // 그리기 함수 부분
         function drawBackground() {
             ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
         }
@@ -183,8 +185,7 @@
             });
         }
 
-
-        // 충돌 감지 함수도 어려워서 챗 gpt에게 물어봤습니다.
+        // 충돌 감지 함수
         function collisionDetection() {
             bullets.forEach((bullet, bIndex) => {
                 invaders.forEach((invader, iIndex) => {
@@ -217,8 +218,6 @@
             });
         }
 
-
-
         // 게임 오버 & 게임 클리어 화면
         function showGameOver() {
             const gameOverWidth = 500;
@@ -243,11 +242,12 @@
             drawBackground();
             if (gameState === 'start') {
                 ctx.drawImage(startSVG, (canvas.width - 500) / 2, (canvas.height - 330) / 2, 500, 330);
+            } else if (gameState === 'story') {
+                ctx.drawImage(storySVG, (canvas.width - 500) / 2, (canvas.height - 330) / 2, 500, 330);
             } else if (gameState === 'rules') {
                 ctx.drawImage(gameRulesSVG, (canvas.width - 500) / 2, (canvas.height - 330) / 2, 500, 330);
             }
         }
-
 
         // 오프닝 & 로딩 화면
         function drawLoading() {
@@ -271,8 +271,7 @@
             ctx.fillRect(loadingBarX, loadingBarY, loadingBarWidth * progress, loadingBarHeight);
         }
 
-
-        // 게임 업데이트 함수 부분도 잘 모르겠어서 챗 gpt에게 물어봤습니다.
+        // 게임 업데이트 함수
         function update() {
             if (gameOver) {
                 showGameOver();
@@ -290,7 +289,7 @@
                 return;
             }
 
-            if (gameState === 'start' || gameState === 'rules') {
+            if (gameState === 'start' || gameState === 'story' || gameState === 'rules') {
                 drawOpening();
                 return;
             }
@@ -318,8 +317,7 @@
             requestAnimationFrame(update);
         }
 
-
-        // 인베이더 초기화 부분도.. 잘 모르겠어서 챗 gpt에게 물어봤습니다.
+        // 인베이더 초기화 함수
         function initInvaders() {
             const rows = 3;
             const cols = 10;
@@ -336,13 +334,11 @@
             }
         }
 
-
-
         // 이미지 로드가 완료되면 게임 시작
         function allImagesLoaded() {
             return new Promise((resolve) => {
                 let loadedCount = 0;
-                const images = [background, playerSVG, invaderSVG, gameOverSVG, gameClearSVG, startSVG, gameRulesSVG, logoSVG];
+                const images = [background, playerSVG, invaderSVG, gameOverSVG, gameClearSVG, startSVG, gameRulesSVG, storySVG, logoSVG];
                 
                 images.forEach((img) => {
                     img.onload = () => {
