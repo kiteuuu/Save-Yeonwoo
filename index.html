@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Invaders</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+        }
+
+        canvas {
+            border: 2px solid #000000;
+            border-radius: 10px;
+            background-color: transparent; /* 캔버스를 투명하게 설정 */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="1024" height="768"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = 1024;
+        canvas.height = 768;
+
+        const background = new Image();
+        background.src = 'img/back.svg';
+
+        const playerSVG = new Image();
+        playerSVG.src = 'img/player.svg';
+
+        const invaderSVG = new Image();
+        invaderSVG.src = 'img/invader.svg';
+
+        const gameOverSVG = new Image();
+        gameOverSVG.src = 'img/gameover.svg';
+
+        const gameClearSVG = new Image();
+        gameClearSVG.src = 'img/gameclear.svg';
+
+        const startSVG = new Image();
+        startSVG.src = 'img/start.svg';
+
+        const gameRulesSVG = new Image();
+        gameRulesSVG.src = 'img/gamerules.svg';
+
+        const logoSVG = new Image();
+        logoSVG.src = 'img/logo.svg';
+
+        const loadingSound = new Audio('sounds/window.mp3'); // 로딩 효과음 파일 경로
+        const invaderDeathSound = new Audio('sounds/window2.mp3'); // 인베이더 죽을 때 효과음 파일 경로
+        const bulletSound = new Audio('sounds/shoot.mp3'); // 총알 발사 효과음 파일 경로
+        bulletSound.volume = 0.2; // 총알 발사 효과음 소리 낮추기
+
+        const playerWidth = 50;
+        const playerHeight = 130;
+        const playerSpeed = 7;
+        const bulletWidth = 5;
+        const bulletHeight = 10;
+        const bulletSpeed = 7;
+        const invaderWidth = 40;
+        const invaderHeight = 40;
+        const invaderSpeed = 2;
+
+        const boxX = 100;
+        const boxY = 30;
+        const boxWidth = 900;
+        const boxHeight = 650;
+
+        let playerX = (boxX + (boxWidth - playerWidth) / 2);
+        let playerY = boxY + boxHeight - playerHeight - 10;
+        let rightPressed = false;
+        let leftPressed = false;
+        let spacePressed = false;
+        let bullets = [];
+        let invaders = [];
+        let invaderDirection = 1;
+        let gameOver = false;
+        let gameClear = false;
+        let gameState = 'loading'; // 'loading', 'start', 'rules', 'playing', 'gameover', 'gameclear'
+
+        document.addEventListener("keydown", keyDownHandler, false);
+        document.addEventListener("keyup", keyUpHandler, false);
+        canvas.addEventListener("click", handleCanvasClick, false);
+
+        function keyDownHandler(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") {
+                rightPressed = true;
+            } else if (e.key === "Left" || e.key === "ArrowLeft") {
+                leftPressed = true;
+            } else if (e.key === " " || e.key === "Spacebar") {
+                spacePressed = true;
+            }
+        }
+
+        function keyUpHandler(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") {
+                rightPressed = false;
+            } else if (e.key === "Left" || e.key === "ArrowLeft") {
+                leftPressed = false;
+            } else if (e.key === " " || e.key === "Spacebar") {
+                spacePressed = false;
+            }
+        }
+
+        function handleCanvasClick() {
+            if (gameState === 'loading') {
+                loadingSound.play(); // 로딩 화면에서 클릭할 때 로딩 사운드를 재생
+            }
+            if (gameState === 'start') {
+                gameState = 'rules';
+                drawOpening();
+            } else if (gameState === 'rules') {
+                gameState = 'playing';
+                initInvaders();
+                update();
+            } else if (gameState === 'gameover' || gameState === 'gameclear') {
+                gameState = 'start';
+                gameOver = false;
+                gameClear = false;
+                bullets = [];
+                invaders = [];
+                playerX = (boxX + (boxWidth - playerWidth) / 2);
+                playerY = boxY + boxHeight - playerHeight - 10;
+                drawOpening();
+            }
+        }
+
+        function drawBackground() {
+            ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+        }
+
+        function drawPlayer() {
+            ctx.drawImage(playerSVG, playerX, playerY, playerWidth, playerHeight);
+        }
+
+        function drawBullets() {
+            ctx.fillStyle = "#F00";
+            bullets.forEach((bullet, index) => {
+                ctx.beginPath();
+                ctx.rect(bullet.x, bullet.y, bulletWidth, bulletHeight);
+                ctx.fill();
+                ctx.closePath();
+                bullet.y -= bulletSpeed;
+
+                if (bullet.y + bulletHeight < 0) {
+                    bullets.splice(index, 1);
+                }
+            });
+        }
+
+        function drawInvaders() {
+            invaders.forEach((invader, index) => {
+                ctx.drawImage(invaderSVG, invader.x, invader.y, invaderWidth, invaderHeight);
+
+                invader.x += invaderSpeed * invaderDirection;
+
+                if (invader.x + invaderWidth > boxX + boxWidth || invader.x < boxX) {
+                    invaderDirection *= -1;
+                    invaders.forEach(inv => inv.y += invaderHeight);
+
+                    if (invader.y + invaderHeight > boxY + boxHeight) {
+                        invader.y = boxY + boxHeight - invaderHeight;
+                    }
+                }
+            });
+        }
+
+        function collisionDetection() {
+            bullets.forEach((bullet, bIndex) => {
+                invaders.forEach((invader, iIndex) => {
+                    if (bullet.x < invader.x + invaderWidth &&
+                        bullet.x + bulletWidth > invader.x &&
+                        bullet.y < invader.y + invaderHeight &&
+                        bullet.y + bulletHeight > invader.y) {
+                        invaderDeathSound.play(); // 인베이더가 죽을 때 효과음 재생
+                        invaders.splice(iIndex, 1);
+                        bullets.splice(bIndex, 1);
+
+                        if (invaders.length === 0) {
+                            gameClear = true;
+                            gameState = 'gameclear';
+                            showGameClear();
+                        }
+                    }
+                });
+            });
+
+            invaders.forEach((invader) => {
+                if (invader.x < playerX + playerWidth &&
+                    invader.x + invaderWidth > playerX &&
+                    invader.y < playerY + playerHeight &&
+                    invader.y + invaderHeight > playerY) {
+                    gameOver = true;
+                    gameState = 'gameover';
+                    showGameOver();
+                }
+            });
+        }
+
+        function showGameOver() {
+            const gameOverWidth = 500;
+            const gameOverHeight = 330;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            ctx.drawImage(gameOverSVG, (canvas.width - gameOverWidth) / 2, (canvas.height - gameOverHeight) / 2, gameOverWidth, gameOverHeight);
+        }
+
+        function showGameClear() {
+            const gameClearWidth = 500;
+            const gameClearHeight = 330;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            ctx.drawImage(gameClearSVG, (canvas.width - gameClearWidth) / 2, (canvas.height - gameClearHeight) / 2, gameClearWidth, gameClearHeight);
+        }
+
+        function drawOpening() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            if (gameState === 'start') {
+                ctx.drawImage(startSVG, (canvas.width - 500) / 2, (canvas.height - 330) / 2, 500, 330);
+            } else if (gameState === 'rules') {
+                ctx.drawImage(gameRulesSVG, (canvas.width - 500) / 2, (canvas.height - 330) / 2, 500, 330);
+            }
+        }
+
+        function drawLoading() {
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const logoWidth = 335;
+            const logoHeight = 245;
+            ctx.drawImage(logoSVG, (canvas.width - logoWidth) / 2, (canvas.height - logoHeight) / 2 - 100, logoWidth, logoHeight);
+
+            const loadingBarWidth = 330;
+            const loadingBarHeight = 20;
+            const loadingBarX = (canvas.width - loadingBarWidth) / 2.1;
+            const loadingBarY = (canvas.height - loadingBarHeight) / 2 + 80;
+
+            ctx.strokeStyle = "#fff";
+            ctx.strokeRect(loadingBarX, loadingBarY, loadingBarWidth, loadingBarHeight);
+            
+            const progress = (Date.now() % 3000) / 3000;
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(loadingBarX, loadingBarY, loadingBarWidth * progress, loadingBarHeight);
+        }
+
+        function update() {
+            if (gameOver) {
+                showGameOver();
+                return;
+            }
+
+            if (gameClear) {
+                showGameClear();
+                return;
+            }
+
+            if (gameState === 'loading') {
+                drawLoading();
+                requestAnimationFrame(update);
+                return;
+            }
+
+            if (gameState === 'start' || gameState === 'rules') {
+                drawOpening();
+                return;
+            }
+
+            if (rightPressed && playerX < boxX + boxWidth - playerWidth) {
+                playerX += playerSpeed;
+            } else if (leftPressed && playerX > boxX) {
+                playerX -= playerSpeed;
+            }
+
+            if (spacePressed) {
+                bullets.push({ x: playerX + playerWidth / 2 - bulletWidth / 2, y: playerY });
+                bulletSound.play(); // 총알이 발사될 때 효과음 재생
+                spacePressed = false;
+            }
+
+            collisionDetection();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawPlayer();
+            drawBullets();
+            drawInvaders();
+
+            requestAnimationFrame(update);
+        }
+
+        function initInvaders() {
+            const rows = 3;
+            const cols = 10;
+            const padding = 20;
+            const offsetX = boxX + 30;
+            const offsetY = boxY + 30;
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const x = col * (invaderWidth + padding) + offsetX;
+                    const y = row * (invaderHeight + padding) + offsetY;
+                    invaders.push({ x, y });
+                }
+            }
+        }
+
+        function allImagesLoaded() {
+            return new Promise((resolve) => {
+                let loadedCount = 0;
+                const images = [background, playerSVG, invaderSVG, gameOverSVG, gameClearSVG, startSVG, gameRulesSVG, logoSVG];
+                
+                images.forEach((img) => {
+                    img.onload = () => {
+                        loadedCount++;
+                        if (loadedCount === images.length) {
+                            resolve();
+                        }
+                    };
+                });
+            });
+        }
+
+        // 즉시 로딩 화면을 그리기 시작
+        requestAnimationFrame(drawLoading);
+
+        allImagesLoaded().then(() => {
+            setTimeout(() => {
+                gameState = 'start';
+                drawOpening();
+            }, 3000);
+            gameState = 'loading';
+            requestAnimationFrame(update);
+        });
+    </script>
+</body>
+</html>
